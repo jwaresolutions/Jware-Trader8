@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  trader:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: jware-trader8-dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - trader_data:/app/data
+      - trader_logs:/app/logs
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=/app/data/trader.db
+      - LOG_LEVEL=debug
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Debug port
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - trader-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: jware-trader8-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --appendfsync everysec
+    networks:
+      - trader-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Optional PostgreSQL for production-like testing
+  postgres:
+    image: postgres:15-alpine
+    container_name: jware-trader8-postgres
+    environment:
+      - POSTGRES_DB=trader
+      - POSTGRES_USER=trader
+      - POSTGRES_PASSWORD=trader_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - trader-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trader -d trader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    profiles:
+      - postgres
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  trader_data:
+    driver: local
+  trader_logs:
+    driver: local
+
+networks:
+  trader-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

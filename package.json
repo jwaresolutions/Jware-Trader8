@@ -1,0 +1,62 @@
+{
+  "name": "jware-trader8",
+  "version": "1.0.0",
+  "description": "Modular automated trading platform",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build:prod": "./scripts/build.sh",
+    "test": "./scripts/test.sh",
+    "test:unit": "./scripts/test.sh --unit",
+    "test:integration": "./scripts/test.sh --integration",
+    "test:e2e": "./scripts/test.sh --e2e",
+    "test:coverage": "./scripts/test.sh --threshold 95",
+    "test:watch": "./scripts/test.sh --watch",
+    "lint": "npm run lint --workspaces",
+    "lint:fix": "npm run lint:fix --workspaces",
+    "type-check": "tsc --noEmit --project tsconfig.json",
+    "clean": "npm run clean --workspaces",
+    "dev": "npm run dev --workspaces",
+    "dev:docker": "docker-compose up -d",
+    "dev:setup": "./scripts/setup-dev.sh",
+    "cli": "node packages/cli/dist/index.js",
+    "setup": "node simple-setup.js",
+    "setup-full": "node setup-fix.js",
+    "setup-manual": "npm install --no-optional && npm run build --if-present",
+    "docker:build": "docker build -t jware-trader8 .",
+    "docker:run": "docker run --rm -p 3000:3000 jware-trader8",
+    "security:audit": "npm audit --audit-level high",
+    "precommit": "npm run lint && npm run type-check && npm run test:unit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-jest": "^27.0.0",
+    "eslint-plugin-security": "^1.7.0",
+    "prettier": "^3.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^15.0.0",
+    "@commitlint/cli": "^18.0.0",
+    "@commitlint/config-conventional": "^18.0.0",
+    "typedoc": "^0.25.0",
+    "terser": "^5.20.0",
+    "nyc": "^15.1.0",
+    "license-checker": "^25.0.0",
+    "audit-ci": "^6.6.0",
+    "nodemon": "^3.0.0",
+    "concurrently": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

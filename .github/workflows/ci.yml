@@ -1,0 +1,457 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  COVERAGE_THRESHOLD: 95
+
+jobs:
+  # ===========================================
+  # Code Quality Checks
+  # ===========================================
+  quality-checks:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: TypeScript type checking
+        run: npx tsc --noEmit --project tsconfig.json
+      
+      - name: ESLint code analysis
+        run: npm run lint
+      
+      - name: Prettier format check
+        run: npx prettier --check "packages/**/*.{ts,js,json,md}"
+      
+      - name: Security audit
+        run: npm audit --audit-level high
+      
+      - name: License compliance check
+        run: npx license-checker --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC"
+        continue-on-error: true
+      
+      - name: Dependency vulnerability scan
+        run: |
+          npm install -g audit-ci
+          audit-ci --moderate
+        continue-on-error: true
+
+  # ===========================================
+  # Unit Tests
+  # ===========================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run unit tests
+        run: ./scripts/test.sh --unit --no-coverage
+        env:
+          NODE_ENV: test
+          LOG_LEVEL: error
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: unit-test-results-${{ matrix.node-version }}
+          path: |
+            packages/*/coverage/
+            test-report-*.txt
+
+  # ===========================================
+  # Integration Tests
+  # ===========================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Wait for Redis
+        run: |
+          until redis-cli -h localhost -p 6379 ping; do
+            echo "Waiting for Redis..."
+            sleep 2
+          done
+      
+      - name: Run integration tests
+        run: ./scripts/test.sh --integration
+        env:
+          NODE_ENV: test
+          REDIS_URL: redis://localhost:6379/1
+          ALPACA_API_KEY: ${{ secrets.ALPACA_TEST_KEY }}
+          POLYGON_API_KEY: ${{ secrets.POLYGON_TEST_KEY }}
+          ENCRYPTION_KEY: test_encryption_key_12345678901234
+          USE_SANDBOX_MODE: true
+          MOCK_MARKET_DATA: true
+      
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: integration-test-results
+          path: |
+            coverage/
+            test-report-*.txt
+
+  # ===========================================
+  # Coverage Report
+  # ===========================================
+  coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    timeout-minutes: 10
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run all tests with coverage
+        run: ./scripts/test.sh --threshold ${{ env.COVERAGE_THRESHOLD }}
+        env:
+          NODE_ENV: test
+          REDIS_URL: redis://localhost:6379/1
+          ALPACA_API_KEY: ${{ secrets.ALPACA_TEST_KEY }}
+          POLYGON_API_KEY: ${{ secrets.POLYGON_TEST_KEY }}
+          ENCRYPTION_KEY: test_encryption_key_12345678901234
+          COVERAGE_THRESHOLD: ${{ env.COVERAGE_THRESHOLD }}
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/final/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-reports
+          path: |
+            coverage/
+            test-report-*.txt
+
+  # ===========================================
+  # Build & Package
+  # ===========================================
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    needs: [quality-checks, unit-tests]
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build packages
+        run: ./scripts/build.sh --skip-tests
+        env:
+          NODE_ENV: production
+          ENABLE_OPTIMIZATION: true
+          GENERATE_SOURCEMAPS: false
+      
+      - name: Verify build
+        run: |
+          # Test CLI entry point
+          node packages/cli/dist/index.js --version
+          
+          # Check package sizes
+          du -sh packages/*/dist
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            packages/*/dist/
+            build-report-*.txt
+          retention-days: 7
+
+  # ===========================================
+  # Docker Build
+  # ===========================================
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [build]
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: jware-trader8
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Test Docker image
+        run: |
+          docker run --rm jware-trader8:latest node packages/cli/index.js --version
+
+  # ===========================================
+  # Performance Tests
+  # ===========================================
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    timeout-minutes: 15
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run performance tests
+        run: ./scripts/test.sh --performance
+        env:
+          NODE_ENV: test
+      
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: |
+            test-report-*.txt
+            performance-*.json
+
+  # ===========================================
+  # Security Scan
+  # ===========================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    timeout-minutes: 10
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'jware-trader8:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ===========================================
+  # Deployment (Staging)
+  # ===========================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [coverage, docker-build, performance]
+    timeout-minutes: 10
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add your staging deployment commands here
+          # Example: kubectl apply -f k8s/staging/
+      
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging..."
+          # Add smoke test commands here
+
+  # ===========================================
+  # Deployment (Production)
+  # ===========================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [coverage, docker-build, performance, security-scan]
+    timeout-minutes: 15
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # Add your production deployment commands here
+          # Example: kubectl apply -f k8s/production/
+      
+      - name: Run post-deployment tests
+        run: |
+          echo "Running post-deployment verification..."
+          # Add post-deployment test commands here
+      
+      - name: Create GitHub release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            Automated release from main branch
+            
+            Changes in this release:
+            ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+
+  # ===========================================
+  # Notification
+  # ===========================================
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [quality-checks, unit-tests, integration-tests, coverage, build, docker-build]
+    if: always()
+    
+    steps:
+      - name: Notify success
+        if: ${{ needs.quality-checks.result == 'success' && needs.unit-tests.result == 'success' && needs.integration-tests.result == 'success' && needs.coverage.result == 'success' && needs.build.result == 'success' && needs.docker-build.result == 'success' }}
+        run: |
+          echo "✅ All CI/CD pipeline steps completed successfully!"
+      
+      - name: Notify failure
+        if: ${{ needs.quality-checks.result == 'failure' || needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.coverage.result == 'failure' || needs.build.result == 'failure' || needs.docker-build.result == 'failure' }}
+        run: |
+          echo "❌ CI/CD pipeline failed!"
+          exit 1

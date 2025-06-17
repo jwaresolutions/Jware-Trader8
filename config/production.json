@@ -1,0 +1,57 @@
+{
+  "logging": {
+    "level": "warn",
+    "file": "./logs/trader-prod.log",
+    "maxSize": "50MB",
+    "maxFiles": 10
+  },
+  "trading": {
+    "sandboxMode": false,
+    "mockData": false,
+    "enablePaperTrading": false,
+    "maxDailyLoss": 0.03,
+    "riskManagementEnabled": true
+  },
+  "database": {
+    "logging": false,
+    "synchronize": false,
+    "ssl": true
+  },
+  "cache": {
+    "redis": {
+      "ttl": 600,
+      "db": 0
+    }
+  },
+  "marketData": {
+    "refreshInterval": 5000,
+    "enableRealTime": true,
+    "retentionDays": 730
+  },
+  "providers": {
+    "alpaca": {
+      "baseUrl": "https://api.alpaca.markets",
+      "timeout": 60000
+    }
+  },
+  "security": {
+    "saltRounds": 15,
+    "jwtExpiresIn": "8h"
+  },
+  "monitoring": {
+    "enableMetrics": true,
+    "metricsPort": 9090,
+    "healthCheck": {
+      "interval": 15000,
+      "timeout": 3000
+    }
+  },
+  "notifications": {
+    "email": {
+      "enabled": true
+    },
+    "webhook": {
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,92 @@
+name: "Momentum Breakout"
+description: "Buy on breakout above resistance with momentum confirmation"
+version: "1.0.0"
+
+parameters:
+  ema_period: 21
+  volume_multiplier: 1.5
+  breakout_period: 20
+  position_size: 0.12
+  symbol: "SPY"
+
+indicators:
+  - name: "ema"
+    type: "EMA"
+    parameters:
+      period: "{{ema_period}}"
+      source: "close"
+  - name: "high_channel"
+    type: "MAX"
+    parameters:
+      period: "{{breakout_period}}"
+      source: "high"
+  - name: "low_channel"
+    type: "MIN"
+    parameters:
+      period: "{{breakout_period}}"
+      source: "low"
+  - name: "volume_avg"
+    type: "SMA"
+    parameters:
+      period: 20
+      source: "volume"
+
+signals:
+  buy:
+    - condition: "close > high_channel[1] AND volume > volume_avg * {{volume_multiplier}} AND close > ema"
+      description: "Breakout above resistance with volume and trend confirmation"
+      confidence: 0.85
+    - condition: "close > ema AND ema > ema[5] AND volume > volume_avg * 2"
+      description: "Strong momentum with exceptional volume"
+      confidence: 0.9
+  sell:
+    - condition: "close < ema AND ema < ema[3]"
+      description: "Trend reversal - close below declining EMA"
+      confidence: 0.8
+    - condition: "close < low_channel[1]"
+      description: "Breakdown below support"
+      confidence: 0.9
+
+risk_management:
+  stop_loss: 0.04        # 4% stop loss
+  take_profit: 0.12      # 12% take profit
+  max_position_size: "{{position_size}}"
+  max_daily_trades: 4
+  max_drawdown: 0.10     # 10% max drawdown
+  trailing_stop: 0.03    # 3% trailing stop
+  profit_target_adjustment: true
+
+backtest_config:
+  initial_capital: 25000  # Higher capital for this strategy
+  commission: 0.0005     # 0.05% commission (ETF)
+  slippage: 0.0003      # 0.03% slippage
+
+entry_filters:
+  # Market condition filters
+  - condition: "ema[1:5].all() < ema[6:10].all()"
+    description: "Recent EMA trend is bullish"
+  # Time-based filters
+  - condition: "time.hour >= 9.5 AND time.hour <= 15.5"
+    description: "Trade only during market hours"
+  # Volatility filter
+  - condition: "atr(14) > atr(14)[10:30].mean() * 0.8"
+    description: "Sufficient volatility for breakouts"
+
+exit_rules:
+  # Profit protection
+  - condition: "unrealized_pnl > 0.06 AND close < ema"
+    action: "close_50_percent"
+    description: "Take partial profits at 6% with trend weakness"
+  # Time-based exit
+  - condition: "bars_in_trade > 10"
+    action: "evaluate_exit"
+    description: "Re-evaluate position after 10 bars"
+
+metadata:
+  author: "Jware-Trader8 Team"
+  created: "2024-01-01"
+  category: "Momentum"
+  timeframes: ["30m", "1h", "4h", "1d"]
+  markets: ["stocks", "etf", "indices"]
+  complexity: "advanced"
+  min_capital: 20000

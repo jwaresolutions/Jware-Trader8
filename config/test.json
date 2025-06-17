@@ -1,0 +1,47 @@
+{
+  "logging": {
+    "level": "error",
+    "file": "./logs/test.log"
+  },
+  "trading": {
+    "sandboxMode": true,
+    "mockData": true,
+    "enablePaperTrading": false
+  },
+  "database": {
+    "type": "sqlite",
+    "filename": ":memory:",
+    "logging": false,
+    "synchronize": true,
+    "dropSchema": true
+  },
+  "cache": {
+    "redis": {
+      "url": "redis://localhost:6379",
+      "db": 15,
+      "ttl": 10
+    }
+  },
+  "marketData": {
+    "refreshInterval": 1000,
+    "enableRealTime": false,
+    "mockData": true,
+    "retentionDays": 1
+  },
+  "providers": {
+    "alpaca": {
+      "baseUrl": "https://paper-api.alpaca.markets",
+      "timeout": 5000
+    }
+  },
+  "security": {
+    "saltRounds": 4,
+    "jwtExpiresIn": "1h"
+  },
+  "monitoring": {
+    "enableMetrics": false,
+    "healthCheck": {
+      "interval": 30000
+    }
+  }
+}

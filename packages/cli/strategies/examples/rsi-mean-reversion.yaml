@@ -1,0 +1,67 @@
+name: "RSI Mean Reversion"
+description: "Buy when RSI is oversold, sell when overbought - contrarian strategy"
+version: "1.0.0"
+
+parameters:
+  rsi_period: 14
+  oversold_level: 30
+  overbought_level: 70
+  position_size: 0.15
+  symbol: "AAPL"
+
+indicators:
+  - name: "rsi"
+    type: "RSI"
+    parameters:
+      period: "{{rsi_period}}"
+      source: "close"
+  - name: "sma_trend"
+    type: "SMA"
+    parameters:
+      period: 50
+      source: "close"
+
+signals:
+  buy:
+    - condition: "rsi < {{oversold_level}} AND rsi[1] >= {{oversold_level}} AND close > sma_trend"
+      description: "RSI crosses below oversold threshold with uptrend confirmation"
+      confidence: 0.75
+    - condition: "rsi < 20"
+      description: "RSI extremely oversold"
+      confidence: 0.9
+  sell:
+    - condition: "rsi > {{overbought_level}} AND rsi[1] <= {{overbought_level}}"
+      description: "RSI crosses above overbought threshold"
+      confidence: 0.75
+    - condition: "rsi > 80"
+      description: "RSI extremely overbought"
+      confidence: 0.9
+
+risk_management:
+  stop_loss: 0.03        # 3% stop loss
+  take_profit: 0.08      # 8% take profit
+  max_position_size: "{{position_size}}"
+  max_daily_trades: 5
+  max_drawdown: 0.12     # 12% max drawdown
+  trailing_stop: 0.02    # 2% trailing stop
+
+backtest_config:
+  initial_capital: 10000
+  commission: 0.001      # 0.1% commission
+  slippage: 0.0005      # 0.05% slippage
+
+filters:
+  # Only trade when trend is favorable
+  - condition: "volume > volume[20:].mean() * 1.2"
+    description: "High volume confirmation"
+  # Avoid trading during low volatility
+  - condition: "close[1:20].std() > close[1:50].std() * 0.8"
+    description: "Sufficient volatility"
+
+metadata:
+  author: "Jware-Trader8 Team"
+  created: "2024-01-01"
+  category: "Mean Reversion"
+  timeframes: ["15m", "1h", "4h"]
+  markets: ["stocks", "etf"]
+  complexity: "intermediate"

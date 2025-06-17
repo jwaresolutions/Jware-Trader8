@@ -1,0 +1,30 @@
+{
+  "name": "@jware-trader8/providers",
+  "version": "1.0.0",
+  "description": "Trading and data provider implementations for Jware-Trader8",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@alpacahq/alpaca-trade-api": "^3.1.3",
+    "@jware-trader8/core": "^1.0.0",
+    "@jware-trader8/types": "^1.0.0",
+    "@jware-trader8/utils": "^1.0.0",
+    "@polygon.io/client-js": "^7.4.0",
+    "node-fetch": "^3.3.2",
+    "ws": "^8.18.2"
+  },
+  "keywords": [
+    "trading",
+    "alpaca",
+    "polygon",
+    "market-data",
+    "provider"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@jware-trader8/database",
+  "version": "1.0.0",
+  "description": "Database layer for Jware-Trader8",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@jware-trader8/types": "^1.0.0",
+    "@jware-trader8/utils": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "jest": "^29.7.0",
+    "typescript": "^5.2.2"
+  },
+  "keywords": [
+    "trading",
+    "database",
+    "sqlite",
+    "configuration",
+    "persistence"
+  ],
+  "author": "Jware-Trader8 Team",
+  "license": "MIT"
+}

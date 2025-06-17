@@ -1,0 +1,33 @@
+FROM node:18-alpine
+
+# Install development dependencies
+RUN apk add --no-cache git python3 make g++
+
+# Create app directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S trader -u 1001 -G nodejs
+
+# Copy package files first for better caching
+COPY package*.json ./
+COPY packages/*/package.json ./packages/*/
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Change ownership to non-root user
+RUN chown -R trader:nodejs /app
+
+# Switch to non-root user
+USER trader
+
+# Expose port
+EXPOSE 3000
+
+# Start development server
+CMD ["npm", "run", "dev"]

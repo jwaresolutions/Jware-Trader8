@@ -1,0 +1,74 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+coverage/
+.nyc_output/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Development files
+.git/
+.gitignore
+.prettierrc
+.prettierignore
+.eslintrc.js
+.commitlintrc.js
+.husky/
+.vscode/
+
+# Documentation (excluding for production)
+docs/
+*.md
+!README.md
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+tests/
+jest.config.js
+jest.setup.js
+
+# Data and logs
+data/
+logs/
+*.log
+*.db
+*.sqlite
+
+# Cache directories
+.cache/
+.npm/
+.yarn/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+
+# Scripts (development only)
+scripts/
+docker-compose.yml
+Dockerfile.dev
+
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,28 @@
+{
+  "name": "@jware-trader8/strategies",
+  "version": "1.0.0",
+  "description": "Strategy execution engine and technical indicators for Jware-Trader8",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@jware-trader8/core": "^1.0.0",
+    "@jware-trader8/types": "^1.0.0",
+    "@jware-trader8/utils": "^1.0.0",
+    "joi": "^17.13.3",
+    "yaml": "^2.8.0"
+  },
+  "keywords": [
+    "trading",
+    "strategy",
+    "indicators",
+    "technical-analysis",
+    "yaml"
+  ]
+}

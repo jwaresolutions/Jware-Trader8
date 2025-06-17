@@ -1,0 +1,36 @@
+# Build outputs
+dist/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Data files
+data/
+*.db
+*.sqlite
+
+# Cache
+.cache/
+.nyc_output/
+
+# Generated files
+*.d.ts
+*.tsbuildinfo
+
+# Package lock files
+package-lock.json
+yarn.lock
+
+# Environment files
+.env
+.env.*
+
+# Markdown with code blocks (preserve formatting)
+README.md
+docs/SPECIFICATION.md

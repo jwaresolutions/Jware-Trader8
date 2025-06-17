@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+
+const path = require('path');
+
+// Check if we're running from source or built
+const distPath = path.join(__dirname, '..', 'dist', 'index.js');
+const srcPath = path.join(__dirname, '..', 'src', 'index.ts');
+
+try {
+  // Try to require the built version first
+  require(distPath);
+} catch (error) {
+  // If built version doesn't exist, try to run with ts-node (development)
+  try {
+    require('ts-node/register');
+    require(srcPath);
+  } catch (tsError) {
+    console.error('Error: Could not start jtrader CLI');
+    console.error('Make sure to run "npm run build" in the CLI package first.');
+    console.error('Original error:', error.message);
+    process.exit(1);
+  }
+}

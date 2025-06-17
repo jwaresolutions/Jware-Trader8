@@ -1,0 +1,40 @@
+{
+  "logging": {
+    "level": "debug",
+    "file": "./logs/trader-dev.log"
+  },
+  "trading": {
+    "sandboxMode": true,
+    "mockData": false,
+    "enablePaperTrading": true
+  },
+  "database": {
+    "logging": true,
+    "synchronize": true
+  },
+  "marketData": {
+    "refreshInterval": 10000,
+    "enableRealTime": false,
+    "mockData": false
+  },
+  "providers": {
+    "alpaca": {
+      "baseUrl": "https://paper-api.alpaca.markets"
+    }
+  },
+  "monitoring": {
+    "enableMetrics": true,
+    "healthCheck": {
+      "interval": 60000
+    }
+  },
+  "security": {
+    "saltRounds": 8
+  },
+  "cache": {
+    "redis": {
+      "ttl": 60,
+      "db": 1
+    }
+  }
+}
